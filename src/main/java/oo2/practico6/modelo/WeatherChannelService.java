@@ -1,13 +1,14 @@
 package oo2.practico6.modelo;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringWriter;
-import java.net.*;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -25,10 +26,11 @@ public class WeatherChannelService implements ClimaOnline {
 
 	@Override
 	public String temperatura() {
-		Map<String, String> params = Map.of("lat", lat.toString(), "lon", lon.toString(), "APPID", appID);
+		// units = metric, para mostrar la temperatura en celsius
+		Map<String, String> params = Map.of("lat", lat.toString(), "lon", lon.toString(),
+				"APPID", appID, "units", "metric");
 		String res = peticion(params);
-		int temp = new Random().nextInt(100);
-		return temp + " c";
+		return res + " c";
 	}
 
 	private static URL armarURL(String direccion) throws MalformedURLException {
@@ -48,33 +50,44 @@ public class WeatherChannelService implements ClimaOnline {
 	private static String peticion(Map<String, String> params) {
 		try {
 			URL url = armarURL(URL_SERVICE, params);
-			System.out.println(url);
+			//System.out.println(url);
+
+			// Realizar la conexión
 			url.openConnection();
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("GET");
 			conn.setRequestProperty("Content-Type", "application/json");
+
+			// Enviar peticion y obtener respuesta.
 			int code = conn.getResponseCode();
 			StringWriter sw = new StringWriter();
-			AtomicReference<String> next = new AtomicReference<>(null);
-			var buf = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-			Stream.iterate(buf, bufferedReader -> {
-				try {
-					next.set(bufferedReader.readLine());
-					return next.get() != null;
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}, bufferedReader -> {
-				sw.append(next.get());
-				return bufferedReader;
-			}).count();
-			System.out.println(sw.toString());
+			obtenerRespuesta(conn, sw);
+
+			// Del JSON obtenido, leer la temperatura.
+			//System.out.println(sw.toString());
+			JSONObject jsonObject = new JSONObject(new JSONTokener(new StringReader(sw.toString())));
+			return jsonObject.getJSONObject("main").getBigDecimal("temp").toString();
 		} catch (MalformedURLException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		return "";
+	}
+
+	private static void obtenerRespuesta(HttpURLConnection conn, StringWriter sw) throws IOException {
+		AtomicReference<String> next = new AtomicReference<>(null);
+		var buf = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+		Stream.iterate(buf, bufferedReader -> {
+			try {
+				next.set(bufferedReader.readLine());
+				return next.get() != null;
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}, bufferedReader -> {
+			sw.append(next.get());
+			return bufferedReader;
+		}).count();
 	}
 
 	private static String urlParams(Map<String, String> mapa) {

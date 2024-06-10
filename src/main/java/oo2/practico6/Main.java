@@ -17,6 +17,6 @@ public class Main {
 		double lat = parseDouble(prop.getProperty("wheatherservice.latitude", ""));
 		double lon = parseDouble(prop.getProperty("wheatherservice.longitude", ""));
 		var medidor = new Medidor(new WeatherChannelService(appID, lat, lon));
-		medidor.leerTemperatura();
+		System.out.println("medidor.leerTemperatura() = " + medidor.leerTemperatura());
 	}
 }
