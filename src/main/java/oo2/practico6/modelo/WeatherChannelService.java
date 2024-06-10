@@ -4,6 +4,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -25,12 +26,12 @@ public class WeatherChannelService implements ClimaOnline {
 	}
 
 	@Override
-	public String temperatura() {
+	public Temperatura temperatura() {
 		// units = metric, para mostrar la temperatura en celsius
 		Map<String, String> params = Map.of("lat", lat.toString(), "lon", lon.toString(),
 				"APPID", appID, "units", "metric");
-		String res = peticion(params);
-		return res + " c";
+		Map<String, Object> res = peticion(params);
+		return obtenerTemperaturaDeRespuesta(res);
 	}
 
 	private static URL armarURL(String direccion) throws MalformedURLException {
@@ -47,7 +48,7 @@ public class WeatherChannelService implements ClimaOnline {
 		return new URL(url.toString());
 	}
 
-	private static String peticion(Map<String, String> params) {
+	private static Map<String, Object> peticion(Map<String, String> params) {
 		try {
 			URL url = armarURL(URL_SERVICE, params);
 			//System.out.println(url);
@@ -63,10 +64,10 @@ public class WeatherChannelService implements ClimaOnline {
 			StringWriter sw = new StringWriter();
 			obtenerRespuesta(conn, sw);
 
-			// Del JSON obtenido, leer la temperatura.
+			// Del JSON obtenido, convertirlo a Mapa y retornarlo.
 			//System.out.println(sw.toString());
 			JSONObject jsonObject = new JSONObject(new JSONTokener(new StringReader(sw.toString())));
-			return jsonObject.getJSONObject("main").getBigDecimal("temp").toString();
+			return jsonObject.toMap();
 		} catch (MalformedURLException e) {
 			throw new RuntimeException(e);
 		} catch (IOException e) {
@@ -87,11 +88,17 @@ public class WeatherChannelService implements ClimaOnline {
 		}, bufferedReader -> {
 			sw.append(next.get());
 			return bufferedReader;
-		}).count();
+		}).count(); // Para que procese.
 	}
 
 	private static String urlParams(Map<String, String> mapa) {
 		final String SEP = "&";
 		return String.join(SEP, mapa.entrySet().stream().map((e) -> e.getKey() + "=" + e.getValue()).toList());
+	}
+
+	private static Temperatura obtenerTemperaturaDeRespuesta(Map<String, Object> respuesta) {
+		Map<String, Object> rama = respuesta;
+		rama = (Map<String, Object>) rama.get("main");
+		return Temperatura.fromCelsius((BigDecimal) rama.get("temp"));
 	}
 }

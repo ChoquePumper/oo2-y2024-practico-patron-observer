@@ -10,7 +10,10 @@ public class Medidor {
 
 	public String leerTemperatura() {
 		//leo la temperatura del servicio web
-		this.temperatura = this.clima.temperatura();
+		var temp = this.clima.temperatura();
+		//System.out.println("temp = " + temp);
+		double celsius = temp.celsius().doubleValue();
+		this.temperatura = String.format("%f c", celsius);
 
 		return this.temperatura;
 	}
