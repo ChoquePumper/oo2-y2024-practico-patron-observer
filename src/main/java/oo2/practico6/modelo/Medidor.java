@@ -1,6 +1,6 @@
 package oo2.practico6.modelo;
 
-public class Medidor {
+public class Medidor extends Observable {
 	private String temperatura;
 	private ClimaOnline clima;
 
@@ -14,6 +14,7 @@ public class Medidor {
 		//System.out.println("temp = " + temp);
 		double celsius = temp.celsius().doubleValue();
 		this.temperatura = String.format("%f c", celsius);
+		notificar(temp);
 
 		return this.temperatura;
 	}
